@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SearchBar } from "@/components/SearchBar";
 import { Filters } from "@/components/Filters";
 import { AnnouncementCard } from "@/components/AnnouncementCard";
 import { useAnnouncements } from "@/context/AnnouncementContext";
-import { Package } from "lucide-react";
+import { Package, Bot, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const { announcements } = useAnnouncements();
@@ -101,7 +103,30 @@ const Index = () => {
               <Package className="h-10 w-10 text-muted-foreground" />
             </div>
             <h2 className="text-xl font-semibold text-foreground mb-2">Elan tapılmadı</h2>
-            <p className="text-muted-foreground">Axtarış kriteriyalarınızı dəyişdirməyi sınayın</p>
+            <p className="text-muted-foreground mb-6">Axtarış kriteriyalarınızı dəyişdirməyi sınayın</p>
+            
+            {/* AI Reminder Suggestion */}
+            <div className="max-w-md mx-auto bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-xl p-5">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Bot className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="text-sm text-foreground font-medium mb-1">
+                    Axtardığınızı tapa bilmirsiniz?
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    AI Xatırlatma xidmətindən istifadə edin — istəklərinizə uyğun elan paylaşıldıqda sizə avtomatik bildiriş göndərilsin.
+                  </p>
+                  <Link to="/ai-reminder">
+                    <Button size="sm" className="gap-2">
+                      AI Xatırlatma
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
