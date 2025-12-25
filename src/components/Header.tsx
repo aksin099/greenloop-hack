@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
-import { Heart, Plus, Search, User, Recycle } from "lucide-react";
+import { Heart, Plus, Search, User, Recycle, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAnnouncements } from "@/context/AnnouncementContext";
 
 export function Header() {
-  const { favorites } = useAnnouncements();
+  const { favorites, logisticsRequests } = useAnnouncements();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
@@ -27,10 +27,33 @@ export function Header() {
               Göz gəzdir
             </Button>
           </Link>
+          <Link to="/logistics">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground relative">
+              <Truck className="h-4 w-4 mr-2" />
+              Logistika
+              {logisticsRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium flex items-center justify-center">
+                  {logisticsRequests.length}
+                </span>
+              )}
+            </Button>
+          </Link>
         </nav>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Mobile Logistics Link */}
+          <Link to="/logistics" className="md:hidden">
+            <Button variant="ghost" size="icon" className="relative">
+              <Truck className="h-5 w-5" />
+              {logisticsRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium flex items-center justify-center">
+                  {logisticsRequests.length}
+                </span>
+              )}
+            </Button>
+          </Link>
+
           <Link to="/favorites">
             <Button variant="ghost" size="icon" className="relative">
               <Heart className="h-5 w-5" />
