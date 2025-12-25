@@ -2,60 +2,39 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Bot, Bell, Sparkles, CheckCircle2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Bot, Bell, Sparkles, CheckCircle2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const materials = [
-  "Beton Bloklar",
-  "Armatur Polad",
-  "Taxta Materiallar",
-  "Portland Sement",
-  "PVC Borular",
-  "Keramik Kafellər",
-  "Elektrik Kabelləri",
-  "Şüşə Panellər",
-  "Digər",
-];
-
-const durations = [
-  { value: "1-week", label: "1 həftə" },
-  { value: "2-weeks", label: "2 həftə" },
-  { value: "1-month", label: "1 ay" },
-  { value: "2-months", label: "2 ay" },
-  { value: "3-months", label: "3 ay" },
-  { value: "6-months", label: "6 ay" },
-];
-
 const AIReminder = () => {
-  const [material, setMaterial] = useState("");
-  const [customMaterial, setCustomMaterial] = useState("");
-  const [duration, setDuration] = useState("");
-  const [minQuantity, setMinQuantity] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [request, setRequest] = useState("");
+  const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!material || !duration) {
+    if (!request.trim() || !email.trim()) {
       toast({
         title: "Xəta",
-        description: "Zəhmət olmasa material və müddət seçin",
+        description: "Zəhmət olmasa istəyinizi və e-poçt ünvanınızı daxil edin",
         variant: "destructive",
       });
       return;
     }
 
-    // Simulate AI processing
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Xəta",
+        description: "Düzgün e-poçt ünvanı daxil edin",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitted(true);
     toast({
       title: "Uğurla qeydə alındı!",
@@ -65,11 +44,8 @@ const AIReminder = () => {
 
   const handleNewRequest = () => {
     setIsSubmitted(false);
-    setMaterial("");
-    setCustomMaterial("");
-    setDuration("");
-    setMinQuantity("");
-    setMaxPrice("");
+    setRequest("");
+    setEmail("");
   };
 
   return (
@@ -123,86 +99,38 @@ const AIReminder = () => {
                     </div>
                     <div className="bg-muted/50 rounded-2xl rounded-tl-none px-4 py-3 max-w-[85%]">
                       <p className="text-foreground">
-                        Salam! 👋 Hansı tikinti materialına ehtiyacınız var və nə qədər müddətə? 
-                        Mən sizin üçün uyğun elanları izləyib, tapıldıqda dərhal xəbər verəcəyəm.
+                        Salam! 👋 Hansı tikinti materialına ehtiyacınız var? 
+                        İstəyinizi sərbəst şəkildə yazın - miqdar, qiymət aralığı, müddət və digər tələblərinizi qeyd edin. 
+                        Uyğun elan paylaşıldıqda sizə dərhal xəbər verəcəyəm.
                       </p>
                     </div>
                   </div>
 
                   {/* Form */}
-                  <form onSubmit={handleSubmit} className="space-y-4 bg-muted/30 rounded-xl p-4 border border-border/50">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="material">Material növü *</Label>
-                        <Select value={material} onValueChange={setMaterial}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Material seçin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {materials.map((m) => (
-                              <SelectItem key={m} value={m}>
-                                {m}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="duration">İzləmə müddəti *</Label>
-                        <Select value={duration} onValueChange={setDuration}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Müddət seçin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {durations.map((d) => (
-                              <SelectItem key={d.value} value={d.value}>
-                                {d.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Request Text Area */}
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Məsələn: 3 ay ərzində 500 ədəd beton blok lazımdır, maksimum qiymət 2 AZN olsun..."
+                        value={request}
+                        onChange={(e) => setRequest(e.target.value)}
+                        className="min-h-[120px] resize-none pr-4 text-base"
+                      />
                     </div>
 
-                    {material === "Digər" && (
-                      <div className="space-y-2">
-                        <Label htmlFor="customMaterial">Material adı</Label>
-                        <Input
-                          id="customMaterial"
-                          placeholder="Materialın adını daxil edin"
-                          value={customMaterial}
-                          onChange={(e) => setCustomMaterial(e.target.value)}
-                        />
-                      </div>
-                    )}
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="minQuantity">Minimum miqdar (istəyə bağlı)</Label>
-                        <Input
-                          id="minQuantity"
-                          type="number"
-                          placeholder="Məs: 100"
-                          value={minQuantity}
-                          onChange={(e) => setMinQuantity(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="maxPrice">Maksimum qiymət (istəyə bağlı)</Label>
-                        <Input
-                          id="maxPrice"
-                          type="number"
-                          placeholder="Məs: 50 AZN"
-                          value={maxPrice}
-                          onChange={(e) => setMaxPrice(e.target.value)}
-                        />
-                      </div>
+                    {/* Email Input */}
+                    <div className="relative">
+                      <Input
+                        type="email"
+                        placeholder="E-poçt ünvanınız"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="text-base"
+                      />
                     </div>
 
                     <Button type="submit" className="w-full gap-2">
-                      <Bell className="h-4 w-4" />
+                      <Send className="h-4 w-4" />
                       Xatırlatma Yarat
                     </Button>
                   </form>
@@ -217,9 +145,7 @@ const AIReminder = () => {
                     Xatırlatma Aktivdir!
                   </h3>
                   <p className="text-muted-foreground max-w-md mx-auto">
-                    <strong className="text-foreground">{material === "Digər" ? customMaterial : material}</strong> üçün 
-                    xatırlatma yaradıldı. Növbəti <strong className="text-foreground">{durations.find(d => d.value === duration)?.label}</strong> ərzində 
-                    uyğun elan paylaşıldıqda sizə bildiriş göndəriləcək.
+                    İstəyiniz qeydə alındı. Uyğun elan paylaşıldıqda <strong className="text-foreground">{email}</strong> ünvanına bildiriş göndəriləcək.
                   </p>
                   <div className="flex gap-3 justify-center pt-4">
                     <Button variant="outline" onClick={handleNewRequest}>
