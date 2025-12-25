@@ -14,6 +14,70 @@ export interface LogisticsRequest {
   createdAt: Date;
 }
 
+// Mock logistics requests data
+const initialLogisticsRequests: LogisticsRequest[] = [
+  {
+    id: "log1",
+    announcementId: "1",
+    material: "Beton Bloklar M200",
+    quantity: 300,
+    unit: "ədəd",
+    fromLocation: "Ağdam",
+    toLocation: "Bakı",
+    offeredPrice: 450,
+    status: "open",
+    createdAt: new Date("2024-12-24"),
+  },
+  {
+    id: "log2",
+    announcementId: "2",
+    material: "Armatur Polad 12mm",
+    quantity: 1500,
+    unit: "metr",
+    fromLocation: "Bakı",
+    toLocation: "Gəncə",
+    offeredPrice: 320,
+    status: "open",
+    createdAt: new Date("2024-12-24"),
+  },
+  {
+    id: "log3",
+    announcementId: "4",
+    material: "Portland Sement M400",
+    quantity: 800,
+    unit: "kisə",
+    fromLocation: "Sumqayıt",
+    toLocation: "Şəki",
+    offeredPrice: 680,
+    status: "open",
+    createdAt: new Date("2024-12-23"),
+  },
+  {
+    id: "log4",
+    announcementId: "5",
+    material: "PVC Kanalizasiya Borusu",
+    quantity: 500,
+    unit: "metr",
+    fromLocation: "Gəncə",
+    toLocation: "Lənkəran",
+    offeredPrice: 280,
+    status: "accepted",
+    createdAt: new Date("2024-12-22"),
+  },
+  {
+    id: "log5",
+    announcementId: "6",
+    material: "Keramik Döşəmə Kafelləri",
+    quantity: 600,
+    unit: "m²",
+    fromLocation: "Bakı",
+    toLocation: "Mingəçevir",
+    offeredPrice: 520,
+    status: "open",
+    createdAt: new Date("2024-12-25"),
+  },
+];
+
 interface AnnouncementContextType {
   announcements: Announcement[];
   favorites: string[];
@@ -31,7 +95,7 @@ const AnnouncementContext = createContext<AnnouncementContextType | undefined>(u
 export function AnnouncementProvider({ children }: { children: ReactNode }) {
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [logisticsRequests, setLogisticsRequests] = useState<LogisticsRequest[]>([]);
+  const [logisticsRequests, setLogisticsRequests] = useState<LogisticsRequest[]>(initialLogisticsRequests);
 
   const addAnnouncement = useCallback((announcement: Omit<Announcement, "id" | "createdAt">) => {
     const newAnnouncement: Announcement = {
