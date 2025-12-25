@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Heart, Plus, Search, User, Recycle, Truck } from "lucide-react";
+import { Heart, Plus, Search, User, Recycle, Truck, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAnnouncements } from "@/context/AnnouncementContext";
 
@@ -36,6 +36,12 @@ export function Header() {
                   {logisticsRequests.length}
                 </span>
               )}
+            </Button>
+          </Link>
+          <Link to="/ai-reminder">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Bot className="h-4 w-4 mr-2" />
+              AI Xatırlatma
             </Button>
           </Link>
         </nav>
