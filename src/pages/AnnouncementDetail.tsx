@@ -10,11 +10,13 @@ import {
   Package,
   ShoppingCart,
   Truck,
-  CheckCircle2
+  CheckCircle2,
+  ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAnnouncements } from "@/context/AnnouncementContext";
 import { Header } from "@/components/Header";
@@ -26,10 +28,12 @@ export default function AnnouncementDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getAnnouncementById, toggleFavorite, isFavorite } = useAnnouncements();
+  const { getAnnouncementById, toggleFavorite, isFavorite, addLogisticsRequest } = useAnnouncements();
 
   const [purchaseStep, setPurchaseStep] = useState<PurchaseStep>("details");
   const [selfManageLogistics, setSelfManageLogistics] = useState(true);
+  const [logisticsPrice, setLogisticsPrice] = useState("");
+  const [destinationLocation, setDestinationLocation] = useState("");
 
   const announcement = getAnnouncementById(id || "");
 
@@ -53,16 +57,37 @@ export default function AnnouncementDetail() {
   };
 
   const handleLogisticsConfirm = () => {
+    if (!selfManageLogistics && !destinationLocation.trim()) {
+      toast({
+        title: "Xəta",
+        description: "Zəhmət olmasa çatdırılma yerini daxil edin.",
+        variant: "destructive",
+      });
+      return;
+    }
     setPurchaseStep("confirm");
   };
 
   const handleFinalConfirm = () => {
+    // If not managing logistics, create a logistics request
+    if (!selfManageLogistics) {
+      addLogisticsRequest({
+        announcementId: announcement.id,
+        material: announcement.title,
+        quantity: announcement.quantity,
+        unit: announcement.unit,
+        fromLocation: announcement.location,
+        toLocation: destinationLocation,
+        offeredPrice: parseFloat(logisticsPrice) || 0,
+      });
+    }
+
     setPurchaseStep("success");
     toast({
       title: "Alış təsdiqləndi!",
       description: selfManageLogistics 
         ? "Sifarişiniz uğurla tamamlandı. Satıcı ilə əlaqə saxlayın."
-        : "Sifarişiniz logistika bölməsinə əlavə edildi.",
+        : "Sifarişiniz və logistika elanı uğurla yaradıldı.",
     });
   };
 
@@ -187,7 +212,7 @@ export default function AnnouncementDetail() {
                     <p className="text-sm text-muted-foreground">
                       {selfManageLogistics 
                         ? "Siz özünüz logistikanı təşkil edəcəksiniz"
-                        : "Logistika bölməsi sizə kömək edəcək"}
+                        : "Logistika bölməsində elan yaradılacaq"}
                     </p>
                   </div>
                   <Switch
@@ -196,6 +221,67 @@ export default function AnnouncementDetail() {
                     onCheckedChange={setSelfManageLogistics}
                   />
                 </div>
+
+                {/* Logistics Form - shown when switch is OFF */}
+                {!selfManageLogistics && (
+                  <div className="space-y-4 p-4 rounded-lg bg-muted/50 border border-border animate-in slide-in-from-top-2 duration-200">
+                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" />
+                      Logistika Elanı Detalları
+                    </h4>
+                    
+                    {/* Auto-filled fields */}
+                    <div className="grid gap-3">
+                      <div className="flex justify-between py-2 px-3 rounded-md bg-background border border-border">
+                        <span className="text-sm text-muted-foreground">Material:</span>
+                        <span className="text-sm font-medium">{announcement.title}</span>
+                      </div>
+                      <div className="flex justify-between py-2 px-3 rounded-md bg-background border border-border">
+                        <span className="text-sm text-muted-foreground">Miqdar:</span>
+                        <span className="text-sm font-medium">{announcement.quantity} {announcement.unit}</span>
+                      </div>
+                      
+                      {/* Route */}
+                      <div className="p-3 rounded-md bg-background border border-border">
+                        <span className="text-sm text-muted-foreground block mb-2">Məkan (Haradan → Haraya):</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 flex-1">
+                            <MapPin className="h-4 w-4 text-primary shrink-0" />
+                            <span className="text-sm font-medium">{announcement.location}</span>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="flex-1">
+                            <Input
+                              placeholder="Çatdırılma yeri..."
+                              value={destinationLocation}
+                              onChange={(e) => setDestinationLocation(e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* User-entered price field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="logistics-price" className="text-sm font-medium">
+                        Logistika üçün təklif etdiyiniz qiymət (₼)
+                      </Label>
+                      <Input
+                        id="logistics-price"
+                        type="number"
+                        placeholder="Məsələn: 500"
+                        value={logisticsPrice}
+                        onChange={(e) => setLogisticsPrice(e.target.value)}
+                        className="text-lg font-medium"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Bu qiymət logistika elanında göstəriləcək
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <Button 
                   onClick={handleLogisticsConfirm}
                   size="lg" 
@@ -226,8 +312,20 @@ export default function AnnouncementDetail() {
                     <span className="text-muted-foreground">Logistika:</span>
                     <span className="font-medium">{selfManageLogistics ? "Özünüz idarə edirsiniz" : "Logistika bölməsi"}</span>
                   </div>
+                  {!selfManageLogistics && (
+                    <>
+                      <div className="flex justify-between py-2 border-b border-border">
+                        <span className="text-muted-foreground">Marşrut:</span>
+                        <span className="font-medium">{announcement.location} → {destinationLocation}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-border">
+                        <span className="text-muted-foreground">Logistika təklifi:</span>
+                        <span className="font-medium text-secondary">{logisticsPrice || 0} ₼</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between py-3 text-lg font-bold">
-                    <span>Cəmi:</span>
+                    <span>Material məbləği:</span>
                     <span className="text-primary">
                       {(announcement.pricePerUnit * announcement.quantity).toLocaleString("az-AZ")} ₼
                     </span>
@@ -254,13 +352,21 @@ export default function AnnouncementDetail() {
                   <p className="text-muted-foreground">
                     {selfManageLogistics 
                       ? "Sifarişiniz uğurla qeydə alındı. Satıcı ilə əlaqə saxlayın."
-                      : "Sifarişiniz logistika bölməsinə göndərildi."}
+                      : "Sifarişiniz qeydə alındı və logistika elanı yaradıldı."}
                   </p>
                 </div>
-                <Button onClick={() => navigate("/")} variant="outline" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Ana səhifəyə qayıt
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <Button onClick={() => navigate("/")} variant="outline" className="gap-2">
+                    <ArrowLeft className="h-4 w-4" />
+                    Ana səhifə
+                  </Button>
+                  {!selfManageLogistics && (
+                    <Button onClick={() => navigate("/logistics")} className="gap-2 bg-primary hover:bg-primary-hover">
+                      <Truck className="h-4 w-4" />
+                      Logistika Bölməsi
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
