@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, X, ImagePlus } from "lucide-react";
+import { Upload, X, ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAnnouncements } from "@/context/AnnouncementContext";
+import { useAddAnnouncement, useUploadImage } from "@/hooks/useSupabaseAnnouncements";
 import { categories, locations } from "@/data/announcements";
 import { Header } from "@/components/Header";
 
@@ -35,7 +36,9 @@ const categoryImages: Record<string, string> = {
 export default function PostAnnouncement() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { addAnnouncement } = useAnnouncements();
+  const { refetchAnnouncements } = useAnnouncements();
+  const addAnnouncementMutation = useAddAnnouncement();
+  const uploadImageMutation = useUploadImage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -51,11 +54,14 @@ export default function PostAnnouncement() {
     sellerPhone: "",
   });
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -64,7 +70,7 @@ export default function PostAnnouncement() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.title || !formData.category || !formData.quantity || !formData.pricePerUnit || !formData.location) {
@@ -76,31 +82,53 @@ export default function PostAnnouncement() {
       return;
     }
 
-    // Use uploaded image or default category image
-    const image = imagePreview || categoryImages[formData.category] || concreteBlocks;
+    setIsSubmitting(true);
 
-    addAnnouncement({
-      title: formData.title,
-      category: formData.category,
-      quantity: parseInt(formData.quantity),
-      unit: formData.unit,
-      pricePerUnit: parseFloat(formData.pricePerUnit),
-      location: formData.location,
-      description: formData.description,
-      image,
-      seller: {
-        name: formData.sellerName || "Anonim Satıcı",
-        company: formData.sellerCompany || "Fərdi Satıcı",
-        phone: formData.sellerPhone || "+994 XX XXX XX XX",
-      },
-    });
+    try {
+      let imageUrl: string | undefined;
 
-    toast({
-      title: "Uğurlu!",
-      description: "Elanınız uğurla yerləşdirildi",
-    });
+      // Upload image if provided
+      if (imageFile) {
+        imageUrl = await uploadImageMutation.mutateAsync(imageFile);
+      } else {
+        // Use default category image URL
+        imageUrl = categoryImages[formData.category] || concreteBlocks;
+      }
 
-    navigate("/");
+      // Save announcement to database
+      await addAnnouncementMutation.mutateAsync({
+        title: formData.title,
+        category: formData.category,
+        quantity: parseInt(formData.quantity),
+        unit: formData.unit,
+        pricePerUnit: parseFloat(formData.pricePerUnit),
+        location: formData.location,
+        description: formData.description,
+        imageUrl,
+        sellerName: formData.sellerName || undefined,
+        sellerCompany: formData.sellerCompany || undefined,
+        sellerPhone: formData.sellerPhone || undefined,
+      });
+
+      // Refetch announcements to update the list
+      refetchAnnouncements();
+
+      toast({
+        title: "Uğurlu!",
+        description: "Elanınız uğurla yerləşdirildi",
+      });
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error posting announcement:", error);
+      toast({
+        title: "Xəta",
+        description: "Elan yerləşdirilərkən xəta baş verdi. Yenidən cəhd edin.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -143,6 +171,7 @@ export default function PostAnnouncement() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setImagePreview(null);
+                        setImageFile(null);
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -180,6 +209,7 @@ export default function PostAnnouncement() {
                     placeholder="Məs: Beton Bloklar M200"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -188,6 +218,7 @@ export default function PostAnnouncement() {
                   <Select
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
+                    disabled={isSubmitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Kateqoriya seçin" />
@@ -211,6 +242,7 @@ export default function PostAnnouncement() {
                       placeholder="500"
                       value={formData.quantity}
                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                      disabled={isSubmitting}
                     />
                   </div>
                   <div className="space-y-2">
@@ -218,6 +250,7 @@ export default function PostAnnouncement() {
                     <Select
                       value={formData.unit}
                       onValueChange={(value) => setFormData({ ...formData, unit: value })}
+                      disabled={isSubmitting}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -243,6 +276,7 @@ export default function PostAnnouncement() {
                     rows={4}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -262,6 +296,7 @@ export default function PostAnnouncement() {
                     value={formData.pricePerUnit}
                     onChange={(e) => setFormData({ ...formData, pricePerUnit: e.target.value })}
                     className="pr-12"
+                    disabled={isSubmitting}
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">₼</span>
                 </div>
@@ -276,6 +311,7 @@ export default function PostAnnouncement() {
                 <Select
                   value={formData.location}
                   onValueChange={(value) => setFormData({ ...formData, location: value })}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Məkan seçin" />
@@ -302,6 +338,7 @@ export default function PostAnnouncement() {
                     placeholder="Adınız"
                     value={formData.sellerName}
                     onChange={(e) => setFormData({ ...formData, sellerName: e.target.value })}
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="space-y-2">
@@ -311,6 +348,7 @@ export default function PostAnnouncement() {
                     placeholder="Şirkət adı"
                     value={formData.sellerCompany}
                     onChange={(e) => setFormData({ ...formData, sellerCompany: e.target.value })}
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
@@ -321,6 +359,7 @@ export default function PostAnnouncement() {
                     placeholder="+994 XX XXX XX XX"
                     value={formData.sellerPhone}
                     onChange={(e) => setFormData({ ...formData, sellerPhone: e.target.value })}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -328,12 +367,31 @@ export default function PostAnnouncement() {
 
             {/* Submit */}
             <div className="flex gap-4 pt-4">
-              <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => navigate(-1)} 
+                className="flex-1"
+                disabled={isSubmitting}
+              >
                 Ləğv et
               </Button>
-              <Button type="submit" className="flex-1 bg-primary hover:bg-primary-hover">
-                <Upload className="h-4 w-4 mr-2" />
-                Dərc et
+              <Button 
+                type="submit" 
+                className="flex-1 bg-primary hover:bg-primary-hover"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Yüklənir...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Dərc et
+                  </>
+                )}
               </Button>
             </div>
           </form>
