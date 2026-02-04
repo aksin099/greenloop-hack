@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
 import { Announcement, initialAnnouncements } from "@/data/announcements";
+import { useSupabaseAnnouncements } from "@/hooks/useSupabaseAnnouncements";
 
 export interface LogisticsRequest {
   id: string;
@@ -82,29 +83,28 @@ interface AnnouncementContextType {
   announcements: Announcement[];
   favorites: string[];
   logisticsRequests: LogisticsRequest[];
-  addAnnouncement: (announcement: Omit<Announcement, "id" | "createdAt">) => void;
+  isLoading: boolean;
   toggleFavorite: (id: string) => void;
   isFavorite: (id: string) => boolean;
   getAnnouncementById: (id: string) => Announcement | undefined;
   getFavoriteAnnouncements: () => Announcement[];
   addLogisticsRequest: (request: Omit<LogisticsRequest, "id" | "createdAt" | "status">) => void;
+  refetchAnnouncements: () => void;
 }
 
 const AnnouncementContext = createContext<AnnouncementContextType | undefined>(undefined);
 
 export function AnnouncementProvider({ children }: { children: ReactNode }) {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [logisticsRequests, setLogisticsRequests] = useState<LogisticsRequest[]>(initialLogisticsRequests);
 
-  const addAnnouncement = useCallback((announcement: Omit<Announcement, "id" | "createdAt">) => {
-    const newAnnouncement: Announcement = {
-      ...announcement,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-    };
-    setAnnouncements((prev) => [newAnnouncement, ...prev]);
-  }, []);
+  // Fetch announcements from Supabase
+  const { data: dbAnnouncements, isLoading, refetch } = useSupabaseAnnouncements();
+
+  // Combine DB announcements with initial mock data as fallback
+  const announcements = dbAnnouncements && dbAnnouncements.length > 0 
+    ? dbAnnouncements 
+    : initialAnnouncements;
 
   const toggleFavorite = useCallback((id: string) => {
     setFavorites((prev) =>
@@ -134,18 +134,23 @@ export function AnnouncementProvider({ children }: { children: ReactNode }) {
     setLogisticsRequests((prev) => [newRequest, ...prev]);
   }, []);
 
+  const refetchAnnouncements = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   return (
     <AnnouncementContext.Provider
       value={{
         announcements,
         favorites,
         logisticsRequests,
-        addAnnouncement,
+        isLoading,
         toggleFavorite,
         isFavorite,
         getAnnouncementById,
         getFavoriteAnnouncements,
         addLogisticsRequest,
+        refetchAnnouncements,
       }}
     >
       {children}
